@@ -61,7 +61,7 @@
   <!-- HERO -->
   <header class="hero" role="banner">
     <h1>VILLA SHIMODA SHIRAHAMA — Flip & Airbnb Investment Calculator</h1>
-    <p>RC 3F new build (2020) · 265.95㎡ (3LDK + Terrace) · ~35m elevation over Shirahama Beach · up to 8 parking (incl. 2 garage) · Land 752㎡ · Ownership </p>
+    <p>RC 3F new build (2020) · 265.95㎡ (3LDK + Terrace) · ~35m elevation over Shirahama Beach · up to 8 parking (incl. 2 garage) · Land 752㎡ · Ownership</p>
     <p><strong>Guide price:</strong> ¥210,000,000 (incl. tax) · Izu-Kyū Shimoda Station ~12 min by car (~5.3 km)</p>
     <div class="badge">
       <span class="tag">Flip First</span><span class="tag">Airbnb 365d & 180d</span><span class="tag">USD + JPY FX</span>
@@ -186,11 +186,12 @@
       <table id="table_minpaku"></table>
     </div>
 
-    <div class="panel">
+    <!-- Flip panel (will be shown/hidden dynamically) -->
+    <div class="panel" id="flipPanel">
       <h2>Flip Settings</h2>
-      <label>Buyer Exit Cap (%)</label>
+      <label id="lbl_flip_exitcap">Buyer Exit Cap (%)</label>
       <input id="flip_exitcap" type="number" step="0.5" value="10">
-      <label>Months to Sale</label>
+      <label id="lbl_flip_months">Months to Sale</label>
       <input id="flip_months" type="number" step="1" value="24">
       <div class="divider"></div>
       <div class="note muted">
@@ -213,10 +214,13 @@
         <div class="kpi"><div class="h">Net Sale Proceeds</div><div id="net" class="v">—</div></div>
         <div class="kpi"><div class="h">Total ROI (Flip)</div><div id="roi" class="v">—</div></div>
       </div>
-      <label>Exit Cap Rate (%)</label>
+
+      <!-- These inputs are ONLY for the Airbnb (hold) scenarios and will be hidden on Flip -->
+      <label id="lbl_exitcap">Exit Cap Rate (%)</label>
       <input id="exitcap" type="number" step="0.5" value="8">
-      <label>Annual Value Growth (%)</label>
+      <label id="lbl_growth">Annual Value Growth (%)</label>
       <input id="growth" type="number" step="0.5" value="1.5">
+
       <table id="table_exit"></table>
     </div>
   </div>
@@ -403,7 +407,6 @@
         <tr><th>Loan Balance (Y5)</th><td>${asUSD(loanAtExit)}${showJPY(loanAtExit)}</td></tr>
         <tr><th>Net Sale Proceeds</th><td>${asUSD(netProceeds)}${showJPY(netProceeds)}</td></tr>
         <tr><th>Equity Invested</th><td>${asUSD(equity)}${showJPY(equity)}</td></tr>`;
-      // DSCR active:
       get('dscr_active').textContent = (scenario==='air_full'?dscrF:dscrM) ? (scenario==='air_full'?dscrF:dscrM).toFixed(2) : '—';
 
     } else { // flip
@@ -434,13 +437,45 @@
     get('net').innerHTML     = asUSD(netProceeds)+showJPY(netProceeds);
     get('roi').textContent   = (ROI!=null ? (ROI*100).toFixed(1)+'%' : '—');
     setGauge(IRR);
+
+    // Update which inputs are visible based on scenario
+    toggleVisibility();
+  }
+
+  // ---------- Show only relevant inputs (Flip vs Airbnb) ----------
+  function toggleVisibility(){
+    const scenario = document.querySelector('input[name="scenario"]:checked').value;
+
+    // Panels / controls
+    const flipPanel = get('flipPanel');
+
+    const exitCapInput = get('exitcap');
+    const exitCapLabel = get('lbl_exitcap');
+    const growthInput  = get('growth');
+    const growthLabel  = get('lbl_growth');
+
+    if (scenario === 'flip') {
+      // Show Flip settings; hide hold-exit inputs
+      if (flipPanel) flipPanel.style.display = '';
+      if (exitCapInput) exitCapInput.style.display = 'none';
+      if (exitCapLabel) exitCapLabel.style.display = 'none';
+      if (growthInput)  growthInput.style.display  = 'none';
+      if (growthLabel)  growthLabel.style.display  = 'none';
+    } else {
+      // Hide Flip settings; show hold-exit inputs
+      if (flipPanel) flipPanel.style.display = 'none';
+      if (exitCapInput) exitCapInput.style.display = '';
+      if (exitCapLabel) exitCapLabel.style.display = '';
+      if (growthInput)  growthInput.style.display  = '';
+      if (growthLabel)  growthLabel.style.display  = '';
+    }
   }
 
   // Bind events (Safari/iPad-safe)
   function bind(){
     Array.prototype.forEach.call(document.querySelectorAll('input[name="scenario"]'), el=>{
-      el.addEventListener('change', compute, {passive:true});
-      el.addEventListener('click', compute, {passive:true});
+      el.addEventListener('change', function(){ compute(); }, {passive:true});
+      el.addEventListener('click',   function(){ compute(); }, {passive:true});
       el.addEventListener('touchstart', function(){ this.click(); }, {passive:true});
     });
     Array.prototype.forEach.call(document.querySelectorAll('input,select'), el=>{
@@ -452,6 +487,7 @@
   document.addEventListener('DOMContentLoaded', function(){
     bind();
     compute();
+    toggleVisibility();
   });
 })();
 </script>
